@@ -1,16 +1,42 @@
 from websockets import exceptions
+import warnings
 import status
 import time
 import math
 import json
 import io
+
+# If one of these isn't defined, the default will run
+events = [
+    'on_client_connect', # Passes the remote_address
+    'on_client_disconnect' # Passes the remote_address
+]
+
+def on_client_connect(remote_address):
+    print('{} has connected'.format(':'.join(remote_address) ))
+
+
+def on_client_disconnect(remote_address):
+    print('{} has disconnected'.format(':'.join(remote_address) ))
+
+
 all_requests = {}
-
-
 # Decorator
 def request(func):
-
     all_requests[func.__name__] = func
+
+
+all_events = {'on_client_connect': on_client_connect, 'on_client_disconnect': on_client_disconnect}
+# Also a decorator
+def event(func):
+    name = func.__name__
+
+    if name not in events:
+        warnings.warn("Event {} was added but will never be called, it's not in list of valid events. ({})".format(
+            name, ', '.join(events)
+        ))
+
+    all_events[name] = func
 
 
 async def __response_handler__(websocket, path, request):
@@ -46,11 +72,11 @@ async def __response_handler__(websocket, path, request):
         result = status.unknown_request()
 
     await websocket.send(json.dumps(result))
-    
+
 
 async def handler(websocket, path):
 
-    print('Client Connected')
+    all_events['on_client_connect'](websocket.remote_address)
 
     while True:
 
@@ -60,7 +86,7 @@ async def handler(websocket, path):
             request = json.loads(await websocket.recv())
 
         except exceptions.ConnectionClosed:
-            print('Client disconnected.')
+            all_events['on_client_disconnect'](websocket.remote_address)
             break
 
         except TypeError:
