@@ -10,6 +10,7 @@ import io
 events = [
     'on_client_connect', # Passes the remote_address
     'on_client_disconnect' # Passes the remote_address
+    'on_request' # Passes bool for success and remote_address
 ]
 
 def on_client_connect(remote_address):
@@ -19,6 +20,17 @@ def on_client_connect(remote_address):
 def on_client_disconnect(remote_address):
     print('{} has disconnected'.format(':'.join(remote_address) ))
 
+def on_request(success, remote_address):
+    if success:
+        status = 'SUCCESSFUL'
+    else:
+        status = 'FAILED'
+    t = time.strftime( '[ %m/%d | %H:%M:%S | {} | "{}" | {}ms | {} ]'.format( websocket.remote_address[0],
+        request['request'],
+        math.ceil(time.time() - start_time),
+        status ) )
+    print(t)
+
 
 all_requests = {}
 # Decorator
@@ -26,7 +38,11 @@ def request(func):
     all_requests[func.__name__] = func
 
 
-all_events = {'on_client_connect': on_client_connect, 'on_client_disconnect': on_client_disconnect}
+all_events = {
+    'on_client_connect': on_client_connect,
+    'on_client_disconnect': on_client_disconnect,
+    'on_request': on_request,
+}
 # Also a decorator
 def event(func):
     name = func.__name__
@@ -47,21 +63,10 @@ async def __response_handler__(websocket, path, request):
 
     result = None
 
-    try:
-        if request['data'] is not None:
-            data = request['data']
-        else:
-            data = {}
-    except KeyError:
-        data = {}
-
     if name in all_requests:
 
         try:
-            await all_requests[name](websocket, path, request, data)
-            t = time.strftime( '[ %m/%d | %H:%M:%S | {} | "{}" | {}ms ]'.format( websocket.remote_address[0],
-                request['request'], math.ceil(time.time() - start_time) ) )
-            print(t)
+            await all_requests[name](websocket, path, request)
             return
 
         except Exception as e:
@@ -72,6 +77,14 @@ async def __response_handler__(websocket, path, request):
         result = status.unknown_request()
 
     await websocket.send(json.dumps(result))
+
+    if result['code'] == 200:
+        success = True
+
+    else:
+        sucess = False
+
+    all_events['on_request'](success, websocket.remote_address)
 
 
 async def handler(websocket, path):
@@ -84,7 +97,6 @@ async def handler(websocket, path):
 
         try:
             request = json.loads(await websocket.recv())
-
         except exceptions.ConnectionClosed:
             all_events['on_client_disconnect'](websocket.remote_address)
             break

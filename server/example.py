@@ -8,7 +8,7 @@ try:
     ip = sys.argv[2]
 except:
     ip = socket.gethostbyname(socket.gethostname())
-    
+
 port = sys.argv[1]
 
 @request
