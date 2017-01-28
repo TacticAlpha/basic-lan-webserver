@@ -20,6 +20,7 @@ def on_client_connect(remote_address):
 def on_client_disconnect(remote_address):
     print('{} has disconnected'.format(':'.join(remote_address) ))
 
+
 def on_request(success, remote_address):
     if success:
         status = 'SUCCESSFUL'
@@ -43,6 +44,7 @@ all_events = {
     'on_client_disconnect': on_client_disconnect,
     'on_request': on_request,
 }
+
 # Also a decorator
 def event(func):
     name = func.__name__
@@ -66,8 +68,7 @@ async def __response_handler__(websocket, path, request):
     if name in all_requests:
 
         try:
-            await all_requests[name](websocket, path, request)
-            return
+            result = status.ok( await all_requests[name](websocket, path, request) )
 
         except Exception as e:
             result = status.internal_server_error(0)
