@@ -4,6 +4,7 @@ to send along with it under the "data" key. You can use it to test requests
 with different inputs.
 """
 
+
 import asyncio
 import websockets
 import json
@@ -15,7 +16,6 @@ try:
 except Exception as e:
     print('Error parsing arguments: {}'.format(e))
     sys.exit()
-
 
 async def hello():
 
@@ -33,10 +33,10 @@ async def hello():
                 tmp_list = [inpt]
                 inpt = input('data[{}] value:> '.format(tmp_list[0]))
                 tmp_list.append(inpt)
-                value[tmp_list[0]] = tmp_list[1]
+                value[tmp_list[0]] = json.loads(inpt)
 
             await websocket.send( json.dumps({'request': name, 'data': value}) )
-            print('Sent!')
+            print('Sent "{}"'.format(json.dumps({'request': name, 'data': value})))
 
             response = await websocket.recv()
             print('(Recieved) ' + str(response) + '\n\n')
