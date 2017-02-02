@@ -15,6 +15,7 @@ events = [
 ]
 
 timeout_delay = 45
+request_timeout = 2
 
 ## Default events
 def on_client_connect(remote_address):
@@ -31,7 +32,7 @@ def on_request(success, remote_address):
 
     elif success == None:
         status = 'UNKNOWN'
-        
+
     else:
         status = 'FAILED'
 
@@ -89,7 +90,11 @@ async def __response_handler__(websocket, path, request):
     else:
         result = status.unknown_request()
 
-    await websocket.send(result)
+    try:
+        await websocket.send(result)
+    except:
+        # TODO More exception logging
+        pass
 
     success = None
     if json.loads(result)['code'] == 200:
@@ -109,16 +114,20 @@ async def handler(websocket, path):
     await all_events['on_client_connect'](websocket.remote_address)
 
     while True:
+        
+        time.sleep(request_timeout)
 
         result = None
 
         try:
             request = json.loads(await websocket.recv())
-        except exceptions.ConnectionClosed:
+        except (exceptions.ConnectionClosed):
+
             # If the client hasn't made any connection in the last {timeout_delay} seconds, kill its listener.
             # Note: Websockets ping the client automatically, this will start being executed
             # immediately if the client closes the connection properly or within
             # about a minute otherwise.
+
             if time.time() - clients[websocket.remote_address]['last_connection'] > timeout_delay:
                 await all_events['on_client_disconnect'](websocket.remote_address)
                 websocket.close(1000, 'No connection made in the last {} seconds.'.format(timeout_delay))
@@ -129,9 +138,10 @@ async def handler(websocket, path):
         except TypeError:
             result = status.invalid_request()
             await websocket.send(json.dumps(result))
+            continue
 
-            # Skip everything else in this iteration as to not try to
-            # process an invalid request
+        except:
+            # TODO Uncaught exception logging
             continue
 
         clients[websocket.remote_address] = {'last_connection': time.time()}
