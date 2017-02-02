@@ -13,15 +13,15 @@ def ok(d=None, *, json=True):
 def invalid_request(*, json=True):
     code = {'code': 400, 'status': 'MALFORMED_REQUEST'}
     if json:
-        code = json_.dumps(raw_code)
-    return raw_code
+        code = json_.dumps(code)
+    return code
 
 
 def unknown_request(*, json=True):
     code = {'code': 400, 'status': 'UNKNOWN_REQUEST'}
     if json:
-        code = json_.dumps(raw_code)
-    return raw_code
+        code = json_.dumps(code)
+    return code
 
 
 # You can assign the internal server error a number for debugging purposes.

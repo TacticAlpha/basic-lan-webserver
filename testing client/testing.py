@@ -24,6 +24,10 @@ async def hello():
 
             inpt = input("request name:> ")
             name = inpt
+            if inpt == '_exit':
+                sys.exit()
+            elif inpt in ['_None', '_null']:
+                await websocket.send( "null" )
             value = {}
             while True:
 
